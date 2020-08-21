@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Access-Control-Allow-Origin" content="*">
+    <title>Test Page</title>
+</head>
+<body>
+    hello
+</body>
+<script>
+    //添加到Sketch顶端
+    var httpRequest = new XMLHttpRequest();
+    var state = "unknown";
+    function invoke() {
+        httpRequest.open('GET', 'http://127.0.0.1:5000/read', true);
+        httpRequest.send();
+    }
+    function onEnter() {
+        //
+    }
+    function onLeave() {
+        //
+    }
+
+    //添加到setup
+    httpRequest.onreadystatechange = function() {
+        if(httpRequest.responseText == "ETR") {
+            onEnter();
+        } else if(httpRequest.responseText == "LVE") {
+            onLeave();
+        } else {
+            state = httpRequest.responseText;
+        }
+        document.write(state);
+    }
+
+    //draw中调用方式
+    invoke();
+</script>
+</html>
