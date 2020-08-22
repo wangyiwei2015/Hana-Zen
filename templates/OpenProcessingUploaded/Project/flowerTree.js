@@ -34,9 +34,21 @@ var cloudY = [];
 var cloudSpeed = [];
 ////////////////////////////////////////////////////////////////////////
 
+var httpRequest = new XMLHttpRequest();
+var state = "unknown";
+var userEntered = false;
+function invoke() {
+    httpRequest.open('GET', 'http://127.0.0.1:5000/read', true);
+    httpRequest.send();
+}
+
 function setup() {
   createCanvas(windowWidth, windowHeight);
   frameRate(24);
+
+  httpRequest.onreadystatechange = function() {
+        state = httpRequest.responseText;
+    }
   ////////////////////////////////////////////////////////////////////////
   moonY = 2 * windowHeight;
   //Initialise star variables
@@ -214,6 +226,33 @@ function draw() {
   setInterval(() => {
     treeBloom();
   }, 5000);
+
+  //Arduino web interface
+  //invoke();
+  /*console.log(state);
+  if (state == 'NBD') {
+      if (userEntered) {
+          userEntered = false;
+          onLeave();
+      } else {
+          //
+      }
+  } else if (state == 'MOV') {
+      if (userEntered) {
+          windy = true;
+          wind1.loop();
+          wind2.play();
+      }
+  } else if (state == 'STL') {
+      if (userEntered) {
+          windy = false;
+          wind1.stop();
+          wind2.stop();
+      } else {
+          userEntered = true;
+          onEnter();
+      }
+  }*/
 }
 function onEnter() {
   humaniconcolor = 'white';
@@ -242,19 +281,30 @@ function mousePressed() {
 }
 
 function keyPressed() {
-  if (key == ' ') {
-    windy = !windy;
-    if (windy) {
-      wind1.loop();
-      wind2.play();
-    } else {
-      wind1.stop();
-      wind2.stop();
-    }
+  if (key == 'm') {
+      if (state != 'm'){
+          state = 'm';
+          windy = true;
+          wind1.loop();
+          wind2.play();
+      }
+  } else if (key == 's') {
+      if (state != 's'){
+          state = 's';
+          windy = false;
+          wind1.stop();
+          wind2.stop();
+      }
   } else if (key == 'b') {
-    treeBloom();
+      if (state != 'b'){
+          state = 'b';
+          treeBloom();
+      }
   } else if (key == 'e') {
-    onEnter();
+      if (state != 'e'){
+          state = 'e';
+          onEnter();
+      }
   }
 }
 function treeBloom() {

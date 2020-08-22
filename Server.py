@@ -28,6 +28,7 @@ class Hardware:
 class Manager:
     arduino = None
     port = None
+    state = 'NBD'
     devices = []
 
     def __init__(self):
@@ -47,7 +48,10 @@ class Manager:
         self.arduino.invoke(data)
 
     def read(self) -> str:
-        return self.arduino.s.read_all().decode().split('\r\n')[-2]
+        buffer = self.arduino.s.read_all().decode().split('\r\n')
+        if len(buffer) > 1:
+            self.state = buffer[-2]
+        return self.state
 
 
 def main():
@@ -82,7 +86,7 @@ def main():
     @web.route('/<path:arg>')
     def index(arg: str):
         if arg == 'read':
-            print('client readed')
+            print(manager.state)
             return str(manager.read()), 200, [('Access-Control-Allow-Origin', '*')]
         if arg == 'test':
             return render_template('test.html')
