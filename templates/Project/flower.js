@@ -35,7 +35,7 @@ function Flower(relativePos, node) {
 
   this.bloom = (wait) => {
     if (this.toBloom == -1) {
-      this.toBloom = wait();
+      this.toBloom = wait() * 6;// Flower grow speed.
     }
   };
 

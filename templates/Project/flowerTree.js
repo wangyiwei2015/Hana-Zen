@@ -3,30 +3,37 @@ let stage1waitingtime = 3000;
 let treebloominterval = 10000;
 let createtreeinterval = 20000;
 let treegrowspeed = 1;
-let sun_moon_speed = 0;
+let sun_moon_speed = 0.4;
 let cloudspeed = 0.4;
 let stage1glowspeed = 1 / 20;
-let daxiao = 1;
-let enter_speed = 10;
+let endscreenwaitingtime = 5000;
+let speed_up = 1;
+let left_hand_detected = false;
+let right_hand_detected = false;
+////////////////////////////////////////////////////////////////////////
+// rain variables
+var acceleration = 1;
+var nDrops = 200;
+var rain = [];
 ////////////////////////////////////////////////////////////////////////
 let gravity = 1;
 let timeUnit = 0.5;
-let leave = false;
 let windy = false;
-let windy1 = false;
-let windypp = 1;
-let windyqq = 0;
 let landScape = null;
 let currentstage = 0;
 let humanicon;
+let humanicon0;
+let humanicon1;
+let humanicon2;
+let humanicon3;
 let logo;
-let thanks;
 // sound effects
 let glow;
 let bgm1;
-let wind1;
-let wind2;
+let wind;
 let thunder;
+let raining;
+let dingdong;
 
 var SunY_change = 0;
 var moonY_change = 1;
@@ -38,7 +45,7 @@ var radius = [];
 var maxRadius = [];
 var speed = [];
 var numStar = 20;
-var SunY = -100;
+var SunY = 50;
 var moonY = 0;
 var SunY_change = 0;
 var moonY_change = 1;
@@ -50,7 +57,7 @@ var yOffset = 0;
 var cloudX = [];
 var cloudY = [];
 ////////////////////////////////////////////////////////////////////////
-// thunder
+// thunder variables
 var xCoord1 = 0;
 var yCoord1 = 0;
 var xCoord2 = 0;
@@ -68,10 +75,20 @@ function invoke() {
 
 
 
-
+function speedup() {
+  stage1waitingtime /= speed_up;
+  treebloominterval /= speed_up;
+  createtreeinterval /= speed_up;
+  treegrowspeed *= speed_up;
+  sun_moon_speed *= speed_up;
+  cloudspeed *= speed_up;
+  stage1glowspeed *= speed_up;
+  endscreenwaitingtime /= speed_up;
+}
 
 function setup() {
-  createCanvas(windowWidth, windowHeight);
+  speedup();
+  createCanvas(windowWidth - 10, windowHeight - 20);
   frameRate(24);
 
   httpRequest.onreadystatechange = function () {
@@ -97,14 +114,18 @@ function setup() {
   yCoord2 = height / 2;
   ////////////////////////////////////////////////////////////////////////
   landScape = new LandScape([], []);
-  humanicon = loadImage('humanicon.png');
-  logo = loadImage('logo1.png');
-  thanks = loadImage('thanks.png');
+  humanicon0 = loadImage('humanicon0.png');
+  humanicon1 = loadImage('humanicon1.png');
+  humanicon2 = loadImage('humanicon2.png');
+  humanicon3 = loadImage('humanicon3.png');
+  humanicon = humanicon0;
   glow = loadSound('glow.wav');
   bgm1 = loadSound('bgm1.mp3');
-  wind1 = loadSound('wind1.mp3');
-  wind2 = loadSound('wind2.mp3');
+  wind = loadSound('wind.mp3');
   thunder = loadSound('thunder.wav');
+  raining = loadSound('raining.mp3');
+  logo = loadImage('logo.png');
+  dingdong = loadSound('dingdong.mp3');
 }
 
 
@@ -115,44 +136,25 @@ function setup() {
 
 
 
-let transparency = 255;
-let transparency1 = 0;
+let transparency = 200;
 let humaniconcolor = 'grey';
 let glow_radius = 0;
 function draw() {
   noStroke();
   let wind = createVector(0, 0);
-  if (windy && windy1) {
+  if (windy) {
     wind = createVector(random(300, 500), random(100, 300));
   }
   else {
-    wind = createVector(random(-30, 40), 0);
+    wind = createVector(random(-10, 10), 0);
   }
   ////////////////////////////////////////////////////////////////////////
-  if (currentstage == 2){
-    sun_moon_speed = 0.4;
-  }
-  if (SunY > 2.5 * windowHeight) {
-    SunY_change = 1;
-  }
-  else if (SunY < -0.5 * windowHeight) { SunY_change = 0; }
-  if (SunY_change == 0) {
-    SunY = SunY + sun_moon_speed;
-  }
-  else if (SunY_change == 1) { SunY = SunY - sun_moon_speed; }
 
-  if (moonY > 2.5 * windowHeight) {
-    moonY_change = 1;
-  }
-  else if (moonY < -0.5 * windowHeight) { moonY_change = 0; }
-  if (moonY_change == 0) {
-    moonY = moonY + sun_moon_speed;
-  }
-  else if (moonY_change == 1) { moonY = moonY - sun_moon_speed; }
+  moonY = windowHeight / 5;
   //Day/night cycle background colours
   var cycle = map(SunY * 0.7, 0, height, 0, 1);
-  var night = color(82, 77, 130);
-  var day = color(255, 205, 168);
+  var night = color(10, 18, 70, 200);
+  var day = color(10, 18, 70, 200);
   var gradient = lerpColor(day, night, cycle);
 
   background(gradient);
@@ -162,11 +164,12 @@ function draw() {
 
   //when clouds reach beyond edge of screen, clouds reset to original side
 
-  fill(247, 247, 156);
-  ellipse(windowWidth - 360, SunY, 200);
+  // Draw moon
+  //fill(247, 247, 200);
+  //ellipse(windowWidth - 360, windowHeight / 9, windowHeight / 6);
 
-  fill(255);
-  ellipse(360, moonY, 200);
+  //fill(255);
+  //ellipse(360, moonY, 200);
 
   //create numStars amount of stars
   for (var i = 0; i < numStar; i++) {
@@ -186,12 +189,13 @@ function draw() {
     }
 
     //stars disppear during the day
-    var starOpacity = map(SunY, 0, height, 0, 255);
+    var starOpacity = 255;
 
     push();
     fill(255, starOpacity);
     strokeWeight(2);
     stroke(255, starOpacity - 200);
+    //star(starX[i], starY[i], radius[i] / 2, radius[i] * 1.5, 5);
     ellipse(starX[i], starY[i], radius[i] * 1.5);
     pop();
   }
@@ -203,7 +207,7 @@ function draw() {
     clouds(cloudX[i], cloudY[i]);
     cloudX[i] = cloudX[i] + cloudspeed;
     //clouds have jitter movement in y-axis
-    cloudY[i] = cloudY[i] + random(-cloudspeed, cloudspeed);
+    cloudY[i] = cloudY[i] + random(-0.5, 0.5);
 
     //when clouds reach beyond edge of screen, clouds reset to original side
     if (cloudX[i] > width + 50) {
@@ -217,7 +221,7 @@ function draw() {
   //Subtle colour placed ontop of the whole sketch to give it atmosphere
   //have to change the color from the original to have an opacity level
   night = color(82, 77, 130, 60);
-  day = color(255, 205, 168, 60);
+  day = color(82, 77, 130, 60);
   gradient = lerpColor(day, night, cycle);
   fill(gradient);
   rect(0, 0, width, height);
@@ -228,12 +232,9 @@ function draw() {
   //////////////////////////////////////////////////////////////////////// water
   for (var i = 0; i < 4; i++) {
     push();
-
-    //mapping water colour to mouse, to match time of day
-    colorMode(HSB, 360, 100, 100, 100);
     //"i" is used for the colour gradient
-    var from = color(209, 26, 95 - (i * 10), 95);
-    var to = color(178, 10, 95 - (i * 5), 95);
+    var from = color(0, 0, 95 - (i * 10), 150);
+    var to = color(0, 0, 95 - (i * 5), 150);
     var waterCol = lerpColor(from, to, cycle); //cycle is already mapped from 0 to 1
     fill(waterCol);
 
@@ -242,25 +243,48 @@ function draw() {
     pop();
   }
   ////////////////////////////////////////////////////////////////////////
-  fill([gradient['levels'][0], gradient['levels'][1], gradient['levels'][2], transparency-30]);
-  rect(0, 0, windowWidth, windowHeight);
-  
-  image(humanicon, (windowWidth / 2 - windowHeight*daxiao / 3),(windowHeight / 2 - windowHeight *daxiao/ 3), (windowHeight * 2 / 3)*daxiao, (windowHeight * 2 / 3)*daxiao);
-  if (humaniconcolor == 'grey') {
-    tint([100, 100, 100, transparency-30]);
+  // rain
+  if (windy) {
+    createRain();
   }
-  else {
+
+  ////////////////////////////////////////////////////////////////////////
+  if (currentstage == 3 || currentstage == 4) {
+    fill([0, 0, 0, transparency - 100]);
+    rect(0, 0, windowWidth, windowHeight);
+    image(logo, windowWidth / 2 - logo.width / 2, windowHeight / 2 - logo.height * 2 / 3, windowHeight * 2 / 3, windowHeight * 2 / 3);
     tint([255, 255, 255, transparency]);
+    if (transparency < 255) {
+      transparency += 5;
+    } else {
+      if (currentstage != 4) {
+        currentstage = 4; // Waiting for reloading.
+        setTimeout(() => {
+          location.reload();
+        }, endscreenwaitingtime);
+      }
+    }
   }
-  fill( [247, 247, 180, transparency-100]);
-  ellipse(windowWidth / 2, windowHeight / 2, glow_radius, glow_radius)
-  if (currentstage == 0) {
-    return;
+
+  if (currentstage == 0 || currentstage == 1) {
+    fill([0, 0, 0, transparency - 100]);
+    rect(0, 0, windowWidth, windowHeight);
+    fill([255, 249, 196, transparency]);
+    ellipse(windowWidth / 2, windowHeight * 1.5 / 6, glow_radius, glow_radius)
+    image(humanicon, windowWidth / 2 - windowHeight / 3, windowHeight / 2 - windowHeight / 3, windowHeight * 2 / 3, windowHeight * 2 / 3);
+    if (humaniconcolor == 'grey') {
+      tint([204, 255, 255, transparency]);
+    }
+    else {
+      tint([255, 249, 196, transparency]);
+    }
+    if (currentstage == 0) {
+      return;
+    }
   }
   if (currentstage == 1) {
-    glow_radius += windowWidth * stage1glowspeed*5*enter_speed/4;
-    transparency -= enter_speed;
-    daxiao -=0.01/3*enter_speed;
+    glow_radius += windowWidth * stage1glowspeed;
+    transparency -= 5;
     if (transparency < 0) {
       currentstage = 2;
       bgm1.loop();
@@ -274,10 +298,17 @@ function draw() {
   setInterval(() => {
     treeBloom();
   }, treebloominterval);
+
+  setInterval(() => {
+    currentstage = 3;
+  }, 6 * 20000);
+
   //thunder
-  if (windy1) {
-    generate_thunder();
-  }
+  //if (windy) {
+  //  generate_thunder();
+  //}
+
+
 
   //Arduino web interface
   //invoke();
@@ -285,7 +316,6 @@ function draw() {
   if (state == 'NBD') {
       if (userEntered) {
           userEntered = false;
-          leave == true;
           onLeave();
       } else {
           //
@@ -293,24 +323,77 @@ function draw() {
   } else if (state == 'MOV') {
       if (userEntered) {
           windy = true;
-          wind1.loop();
-          wind2.play();
+          wind.loop();
       }
   } else if (state == 'STL') {
       if (userEntered) {
           windy = false;
-          wind1.stop();
-          wind2.stop();
+          wind.stop();
       } else {
           userEntered = true;
           onEnter();
       }
   }*/
-  if(leave == true){
-    onLeave();
-  }
 }
+function star(x, y, radius1, radius2, npoints) {
+  let angle = TWO_PI / npoints;
+  let halfAngle = angle / 2.0;
+  beginShape();
+  for (let a = 0; a < TWO_PI; a += angle) {
+    let sx = x + cos(a) * radius2;
+    let sy = y + sin(a) * radius2;
+    vertex(sx, sy);
+    sx = x + cos(a + halfAngle) * radius1;
+    sy = y + sin(a + halfAngle) * radius1;
+    vertex(sx, sy);
+  }
+  endShape(CLOSE);
+}
+function createRain() {
+  rain.forEach(function (d) {
+    d.drawAndDrop();
+  });
+}
+function Drop() {
+  this.initX = function () {
+    this.x = random(-windowWidth / 6, windowWidth);
+  };
+  this.initY = function () {
+    this.y = random(-windowHeight / 6, windowHeight * 5 / 6); // Initialise rain.
+  };
 
+  this.initX();
+  this.initY();
+
+
+  this.length = random() * 5;
+  this.speed = random() * 10;
+
+  this.drawAndDrop = function () {
+    this.draw();
+    this.drop();
+  };
+
+  this.draw = function () {
+    stroke(255, 255, 255, 200);
+    strokeWeight(random(1, 3));
+    line(this.x, this.y, this.x + this.length * random(), this.y + this.length);
+  };
+
+  this.drop = function () {
+    if (this.y < windowHeight * 5 / 6) {
+      this.y += this.speed;
+      this.x += this.speed;
+      this.speed += acceleration;
+    } else {
+      this.speed = random();
+      this.initX();
+      this.initY();
+    }
+
+  }
+
+}
 function generate_thunder() {
   for (let i = 0; i < 20; i++) {
     xCoord1 = xCoord2;
@@ -340,97 +423,100 @@ function onEnter() {
 }
 function onLeave() {
   windy = true;
-  windy1 = true;
-  if (currentstage == 2) {
-    transparency1 += 1;
-    daxiao = 0.5;
-    fill([0,0,0, transparency1]);
-    rect(-10, -10, windowWidth+10, windowHeight+10);
-    image(logo, (windowWidth / 2 - windowHeight*daxiao / 3),(2*windowHeight ), (windowHeight * 2 / 3)*daxiao, (windowHeight * 2 / 3)*daxiao);
-    tint([255, 255, 255, 255]);
-    image(logo, (windowWidth / 2 - windowHeight*daxiao / 3),(windowHeight / 2 - windowHeight *daxiao/ 2), (windowHeight * 2 / 3)*daxiao, (windowHeight * 2 / 3)*daxiao);
-    tint([255, 255, 255, 255]);
-    if (transparency1 > 150) {
-      currentstage = 1;
-      //bgm1.loop();
-    }
-  }
-  if (currentstage == 1) {
-    transparency1 += 1;
-    fill([0,0,0, transparency1]);
-    rect(0, 0, windowWidth, windowHeight);
-    image(logo, (windowWidth / 2 - windowHeight*daxiao / 3),(windowHeight / 2 - windowHeight *daxiao/ 2), (windowHeight * 2 / 3)*daxiao, (windowHeight * 2 / 3)*daxiao);
-    tint([255, 255, 255, 255]);
-    image(thanks, (windowWidth / 2 - windowHeight*daxiao / 3),(windowHeight / 2 ), (windowHeight * 2 / 3)*daxiao, (windowHeight * 2 / 3)*daxiao);
-    tint([255, 255, 255, 255]);
-  }
+  humaniconcolor = 'grey';
 }
 function mousePressed() {
+  return;
   if (currentstage == 0) {
     onEnter();
   } else {
-    if(windyqq == 1){
-      windy1 = false;
-      windy = false;
-      windyqq = 0;
-    } else{
-      windy1 = true;
-      windy = true;
-      windyqq = 1;
-    }
-    
-    if (windy1) {
-      wind1.loop();
-      wind2.play();
-      thunder.loop();
+    windy = !windy;
+    if (windy) {
+      wind.loop();
+      //thunder.loop();
+      raining.loop();
+      //rain
+      for (i = 0; i < nDrops; i++) {
+        rain.push(new Drop());
+      }
     } else {
-      wind1.stop();
-      wind2.stop();
-      thunder.stop();
+      wind.stop();
+      //thunder.stop();
+      raining.stop();
+      rain = [];
     }
   }
 }
-
 function keyPressed() {
-  if (key == 'm') {
-    if (state != 'm') {
-      state = 'm';
-      windy1 = true;
-      wind1.loop();
-      wind2.play();
+  if (currentstage == 0) {
+    if (key == '0') {
+      humanicon = humanicon0;
+    } else if (key == '1') {
+      humanicon = humanicon1;
+      dingdong.play();
+    } else if (key == '2') {
+      humanicon = humanicon2;
+      dingdong.play();
+    } else if (key == '3') {
+      humanicon = humanicon3;
+      dingdong.play();
     }
-  } else if (key == 's') {
-    if (state != 's') {
-      state = 's';
-      windy1 = false;
-      wind1.stop();
-      wind2.stop();
+  }
+  if (key == 'm' && state != 'm') {
+    if (currentstage != 0 && currentstage != 1) {
+      state = 'm';
+      windy = true;
+      wind.loop();
+      raining.loop();
+      //rain
+      for (i = 0; i < nDrops; i++) {
+        rain.push(new Drop());
+      }
+    }
+  } else if (key == 's' && state != 's') {
+    if (humaniconcolor != 'white') { //not entererd
+      state = 'e';
+      onEnter();
+    } else {
+      if (state != 's') {
+        state = 's';
+        windy = false;
+        wind.stop();
+        raining.stop();
+        rain = [];
+      }
     }
   } else if (key == 'b') {
-    if (state != 'b') {
-      state = 'b';
-      treeBloom();
-    }
-  } else if (key == 'e') {
-    if (state != 'e') {
+    treeBloom();
+  } else if (key == 'e' && state != 'e') {
+    if (humaniconcolor != 'white') {
       state = 'e';
       onEnter();
     }
-  }else if (key == 'l') {
-    if (state != 'l') {
+  } else if (key == 'l' && state != 'l') {
+    if (currentstage != 0 && currentstage != 1) {
+      if (state != 'm') {
+        windy = true;
+        wind.loop();
+        raining.loop();
+        //rain
+        for (i = 0; i < nDrops; i++) {
+          rain.push(new Drop());
+        }
+        onLeave()
+      }
       state = 'l';
-      onLeave();
+      currentstage = 3;
     }
   }
 }
 function treeBloom() {
-  if (windy1) {
+  if (windy) {
     return;
   }
-  
   for (let tree of landScape.trees) {
     tree.bloom(() => {
-      return max(floor(randomGaussian(36, 24)), 0) * 10;
+      return max(floor(randomGaussian(24, 12)), 0) * 10;
     });
   }
 }
@@ -439,31 +525,26 @@ function createTree() {
   let strength = floor(random(6, 8));
   let x_position;
   let tree_height;
-  let middle = 1;
+  let middle = windowWidth / 3000;
   switch (landScape.trees.length) {
     case 0:
       x_position = windowWidth * random(0.45, 0.55);
-      tree_height = 0.95;
+      tree_height = 0.9;
       middle = 2; // Bigger flowers.
       break;
 
     case 1:
       x_position = windowWidth * random(0.15, 0.25);
-      tree_height = random(0.6, 0.8);
+      tree_height = random(0.5, 0.6);
       break;
 
     case 2:
       x_position = windowWidth * random(0.75, 0.85);
-      tree_height = random(0.6, 0.8);
+      tree_height = random(0.5, 0.6);
       break;
 
     default:
-      if(windypp ==1){
-        windy = true;
-        windypp = 0;
-      } else {
-      windy = false;
-      windypp = 1}
+      return
       break;
   }
   landScape.addTree(new Tree(
@@ -478,18 +559,18 @@ function createTree() {
     limit = 0.2,
     rubust = 0.2,
     damping = 0.4,
-    lineColor = [96, 96, 72,],
+    lineColor = [121, 85, 72,],
     bloomDepth = 0,
-    flowerRubust = 0.6,
+    flowerRubust = 0.01,
     flowerMass = () => {
-      return random(10, 100) * middle;
+      return random(80, 200) * middle;
     },
     flowerColor = () => {
       return [
-        random(192, 216),
-        random(96, 144),
-        random(64, 96),
-        192,
+        255,
+        random(111, 236),
+        random(0, 178),
+        170,
       ];
     },
     flowerShape = () => {
@@ -498,6 +579,9 @@ function createTree() {
         ellipse(0, -0.8, 1.2, 1.2);
         rotate(radians(72));
       }
+      // Draw pistil.
+      fill([160, 64, 0, 255]);
+      ellipse(0, 0, 0.5, 0.5);
     }
   ));
 }
@@ -532,6 +616,7 @@ function waves(minHeight, maxHeight, nStart) {
 
 /* Description - Drawing cloud shape with ellipses */
 function clouds(x, y) {
+  return;
   ellipse(x, y - 10, 40);
   ellipse(x + 10, y - 10, 30);
   ellipse(x + 10, y - 10 - 10, 40);
