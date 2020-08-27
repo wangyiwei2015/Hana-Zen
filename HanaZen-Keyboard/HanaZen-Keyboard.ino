@@ -25,7 +25,7 @@ void loop() {
     if(leaveCounter<30){
       leaveCounter++;
     }else{
-      leaveCounter = 0;//103essssssssssmmmmmmmmmmml01313essssmmmmmmmmssssssssssssssssssssmmmmmmmmmmmssssssssssssssssmmmmmmmmmml01013essssssssmmmmmmmmml020202023020323essmmmmmmml0103essssssssmmmmmmmmmml010101020101020202020202020202020202
+      leaveCounter = 0;
       user_is_sitting = false;
 //      digitalWrite(13, HIGH);
       Keyboard.press('l');
